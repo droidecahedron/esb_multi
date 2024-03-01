@@ -188,9 +188,6 @@ static void leds_update(uint8_t value)
 
 void event_handler(struct esb_evt const *event)
 {
-	/*note: Not using devicetree to make sure this is as fast as possible*/
-	nrf_gpio_pin_toggle(TEST_PIN);
-
 	switch (event->evt_id)
 	{
 	case ESB_EVENT_TX_SUCCESS:
@@ -218,6 +215,7 @@ void event_handler(struct esb_evt const *event)
 			LOG_ERR("Error while reading rx packet");
 		}
 		LOG_INF("RX RECEIVED");
+		nrf_gpio_pin_toggle(TEST_PIN); // faster
 		break;
 	}
 }
