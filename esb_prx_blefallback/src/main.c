@@ -229,7 +229,7 @@ void event_handler(struct esb_evt const *event)
 					rx_payload.data[5], rx_payload.data[6],
 					rx_payload.data[7]);
 
-			leds_update(rx_payload.data[1]); // this might be slow.
+			//leds_update(rx_payload.data[1]); // this might be slow.
 		}
 		else
 		{

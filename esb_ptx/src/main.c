@@ -402,7 +402,7 @@ int main(void)
 			}
 			ready = false;
 			esb_flush_tx();
-			leds_update(tx_payload.data[1]);
+			//leds_update(tx_payload.data[1]);
 
 			err = esb_write_payload(&tx_payload);
 			if (err)
