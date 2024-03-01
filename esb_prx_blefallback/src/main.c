@@ -290,6 +290,12 @@ int esb_initialize(void)
 		return err;
 	}
 
+	err = esb_set_rf_channel(g_channels[peripheral_number]);
+	if(err)
+	{
+		return err;
+	}
+
 	return 0;
 }
 
