@@ -2,6 +2,7 @@
  * Copyright (c) 2024 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ * author: johnny nguyen
  */
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/nrf_clock_control.h>
@@ -14,8 +15,12 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/kernel.h>
 #include <zephyr/types.h>
+#include <nrfx_gpiote.h>
 
 LOG_MODULE_REGISTER(esb_ptx);
+
+// radio debug pin
+#define TEST_PIN 31
 
 static const struct gpio_dt_spec leds[] = {
 	GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios),
@@ -54,6 +59,8 @@ volatile bool swap_device = false;
 void event_handler(struct esb_evt const *event)
 {
 	ready = true;
+	/*note: Not using devicetree to make sure this is as fast as possible*/
+	nrf_gpio_pin_toggle(TEST_PIN);
 
 	switch (event->evt_id)
 	{
@@ -216,7 +223,7 @@ static void leds_update(uint8_t value)
 #define BUTTONS_NODE DT_PATH(buttons)
 static const struct gpio_dt_spec buttons[] = {
 #if DT_NODE_EXISTS(BUTTONS_NODE)
-    DT_FOREACH_CHILD(BUTTONS_NODE, GPIO_SPEC_AND_COMMA)
+	DT_FOREACH_CHILD(BUTTONS_NODE, GPIO_SPEC_AND_COMMA)
 #endif
 };
 
@@ -251,7 +258,6 @@ void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t
 		LOG_INF("unknown pin in button callback");
 	}
 }
-
 
 static int buttons_init(void)
 {
@@ -309,7 +315,7 @@ static int buttons_init(void)
 
 static void app_esb_rotate_device(int peripheral_choice)
 {
-	//TODO: Why does this rotation require the swap flag in the ESB callback?
+	// TODO: Why does this rotation require the swap flag in the ESB callback?
 	esb_disable();
 	esb_initialize(peripheral_choice); // gotta do this if using esb_disable
 	esb_start_tx();
@@ -320,6 +326,10 @@ int main(void)
 	int err;
 
 	LOG_INF("Enhanced ShockBurst ptx sample, press button1 after setting up the PRXs");
+
+	// init test pin
+	nrf_gpio_cfg_output(TEST_PIN);
+	nrf_gpio_pin_clear(TEST_PIN); // start clear
 
 	err = clocks_start();
 	if (err)
@@ -338,7 +348,11 @@ int main(void)
 	{
 		return 0;
 	}
-	while(!start_test);
+
+	while (!start_test)
+	{
+		//press button 1 to leave
+	}
 
 	err = esb_initialize(g_periph_choice);
 	if (err)
@@ -355,7 +369,7 @@ int main(void)
 	{
 		if (ready)
 		{
-			if(swap_device)
+			if (swap_device)
 			{
 				swap_device = false;
 				g_periph_choice = (g_periph_choice + 1) % NUM_PRX_PERIPH;

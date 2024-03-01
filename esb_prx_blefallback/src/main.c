@@ -2,6 +2,7 @@
  * Copyright (c) 2024 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ * author: johnny nguyen
  */
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
@@ -14,8 +15,12 @@
 #include <esb.h>
 #include <zephyr/kernel.h>
 #include <zephyr/types.h>
+#include <nrfx_gpiote.h>
 
 LOG_MODULE_REGISTER(esb_prx);
+
+// radio debug pin
+#define TEST_PIN 31
 
 static const struct gpio_dt_spec leds[] = {
 	GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios),
@@ -41,7 +46,7 @@ BUILD_ASSERT(DT_SAME_NODE(DT_GPIO_CTLR(DT_ALIAS(led0), gpios),
 #define BUTTONS_NODE DT_PATH(buttons)
 static const struct gpio_dt_spec buttons[] = {
 #if DT_NODE_EXISTS(BUTTONS_NODE)
-    DT_FOREACH_CHILD(BUTTONS_NODE, GPIO_SPEC_AND_COMMA)
+	DT_FOREACH_CHILD(BUTTONS_NODE, GPIO_SPEC_AND_COMMA)
 #endif
 };
 
@@ -183,6 +188,9 @@ static void leds_update(uint8_t value)
 
 void event_handler(struct esb_evt const *event)
 {
+	/*note: Not using devicetree to make sure this is as fast as possible*/
+	nrf_gpio_pin_toggle(TEST_PIN);
+
 	switch (event->evt_id)
 	{
 	case ESB_EVENT_TX_SUCCESS:
@@ -307,6 +315,10 @@ int main(void)
 
 	LOG_INF("Enhanced ShockBurst prx sample");
 
+	// init test pin
+	nrf_gpio_cfg_output(TEST_PIN);
+	nrf_gpio_pin_clear(TEST_PIN); // start clear
+
 	err = clocks_start();
 	if (err)
 	{
@@ -328,7 +340,7 @@ int main(void)
 	// wait until peripheral number selection
 	while (peripheral_number < 0)
 	{
-		// press button 1 or 2.
+		// press button 1 or 2 to set up device and leave
 	}
 
 	err = esb_initialize();
