@@ -40,11 +40,11 @@ static struct esb_payload tx_payload = ESB_CREATE_PAYLOAD(0,
 /* These are arbitrary default addresses. In end user products
  * different addresses should be used for each set of devices.
  */
-#define NUM_PRX_PERIPH 2 // keep num periphs of 2 for useful circular overflow
+#define NUM_PRX_PERIPH 2
 uint8_t g_base_addr_0[NUM_PRX_PERIPH][4] = {{0xE7, 0xE7, 0xE7, 0xE7}, {0xEE, 0xEE, 0xEE, 0xEE}};
-uint8_t g_base_addr_1[NUM_PRX_PERIPH][4] = {{0xC2, 0xC2, 0xC2, 0xC2}, {0xCC, 0xCC, 0xCC, 0xCC}};
-uint8_t addr_prefix[8] = {0xE7, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8}; // pretty sure you can just have these be the same.
-uint32_t g_channels[NUM_PRX_PERIPH] = {2, 4};							   // channel selection per periph
+uint32_t g_channels[NUM_PRX_PERIPH] = {2, 4}; // channel selection per periph
+volatile int g_periph_choice = 0;
+volatile bool swap_device = false;
 
 #define _RADIO_SHORTS_COMMON                                       \
 	(RADIO_SHORTS_READY_START_Msk | RADIO_SHORTS_END_DISABLE_Msk | \
@@ -59,6 +59,7 @@ void event_handler(struct esb_evt const *event)
 	{
 	case ESB_EVENT_TX_SUCCESS:
 		LOG_DBG("TX SUCCESS EVENT");
+		swap_device = true; // TODO:DEBUG:rotate device when we hear back
 		break;
 	case ESB_EVENT_TX_FAILED:
 		LOG_DBG("TX FAILED EVENT");
@@ -116,9 +117,12 @@ int clocks_start(void)
 	return 0;
 }
 
-int esb_initialize(void)
+int esb_initialize(int peripheral_choice)
 {
 	int err;
+
+	uint8_t base_addr_1[4] = {0xC2, 0xC2, 0xC2, 0xC2};
+	uint8_t addr_prefix[8] = {0xE7, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8};
 
 	struct esb_config config = ESB_DEFAULT_CONFIG;
 
@@ -136,14 +140,13 @@ int esb_initialize(void)
 		return err;
 	}
 
-	// the main loop will stop and switch between these
-	err = esb_set_base_address_0(g_base_addr_0[0]); 
+	err = esb_set_base_address_0(g_base_addr_0[peripheral_choice]);
 	if (err)
 	{
 		return err;
 	}
 
-	err = esb_set_base_address_1(g_base_addr_0[0]);
+	err = esb_set_base_address_1(base_addr_1);
 	if (err)
 	{
 		return err;
@@ -155,8 +158,8 @@ int esb_initialize(void)
 		return err;
 	}
 
-	err = esb_set_rf_channel(g_channels[0]);
-	if(err)
+	err = esb_set_rf_channel(g_channels[peripheral_choice]);
+	if (err)
 	{
 		return err;
 	}
@@ -204,11 +207,119 @@ static void leds_update(uint8_t value)
 	(void)gpio_port_set_masked_raw(leds[0].port, mask, val);
 }
 
+// 52840dk
+#define dk_button1_msk 1 << 11 // button1 is gpio pin 11 in the .dts
+#define dk_button2_msk 1 << 12 // button2 is gpio pin 12 in the .dts
+#define dk_button3_msk 1 << 24 // button3 is gpio pin 24 in the .dts
+#define dk_button4_msk 1 << 25 // button4 is gpio pin 25 in the .dts
+#define GPIO_SPEC_AND_COMMA(button_or_led) GPIO_DT_SPEC_GET(button_or_led, gpios),
+#define BUTTONS_NODE DT_PATH(buttons)
+static const struct gpio_dt_spec buttons[] = {
+#if DT_NODE_EXISTS(BUTTONS_NODE)
+    DT_FOREACH_CHILD(BUTTONS_NODE, GPIO_SPEC_AND_COMMA)
+#endif
+};
+
+static struct gpio_callback button_callback;
+volatile bool start_test = false;
+
+void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+{
+	LOG_INF("Button pressed at %" PRIu32, k_cycle_get_32());
+	LOG_INF("pins var: %d", pins);
+
+	switch (pins)
+	{
+	case dk_button1_msk:
+		LOG_INF("BUTTON1");
+		start_test = true;
+		break;
+
+	case dk_button2_msk:
+		LOG_INF("BUTTON2");
+		break;
+
+	case dk_button3_msk:
+		LOG_INF("BUTTON3");
+		break;
+
+	case dk_button4_msk:
+		LOG_INF("BUTTON4");
+		break;
+
+	default:
+		LOG_INF("unknown pin in button callback");
+	}
+}
+
+
+static int buttons_init(void)
+{
+	int err = NRFX_SUCCESS;
+	if (!device_is_ready(buttons[0].port))
+	{
+		LOG_ERR("LEDs port not ready");
+		return -ENODEV;
+	}
+
+	//--- Buttons
+	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
+	{
+		/* Enable pull resistor towards the inactive voltage. */
+		gpio_flags_t flags =
+			buttons[i].dt_flags & GPIO_ACTIVE_LOW ? GPIO_PULL_UP : GPIO_PULL_DOWN;
+		err = gpio_pin_configure_dt(&buttons[i], GPIO_INPUT | flags);
+
+		if (err)
+		{
+			LOG_ERR("Cannot configure button gpio");
+			return err;
+		}
+	}
+
+	uint32_t pin_mask = 0;
+
+	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
+	{
+		err = gpio_pin_interrupt_configure_dt(&buttons[i],
+											  GPIO_INT_EDGE_TO_ACTIVE);
+		if (err)
+		{
+			LOG_ERR("Cannot disable callbacks()");
+			return err;
+		}
+
+		pin_mask |= BIT(buttons[i].pin);
+	}
+
+	gpio_init_callback(&button_callback, button_pressed, pin_mask);
+
+	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
+	{
+		err = gpio_add_callback(buttons[i].port, &button_callback);
+		if (err)
+		{
+			LOG_ERR("Cannot add callback");
+			return err;
+		}
+	}
+
+	return err;
+}
+
+static void app_esb_rotate_device(int peripheral_choice)
+{
+	//TODO: Why does this rotation require the swap flag in the ESB callback?
+	esb_disable();
+	esb_initialize(peripheral_choice); // gotta do this if using esb_disable
+	esb_start_tx();
+}
+
 int main(void)
 {
 	int err;
 
-	LOG_INF("Enhanced ShockBurst ptx sample");
+	LOG_INF("Enhanced ShockBurst ptx sample, press button1 after setting up the PRXs");
 
 	err = clocks_start();
 	if (err)
@@ -222,7 +333,14 @@ int main(void)
 		return 0;
 	}
 
-	err = esb_initialize();
+	err = buttons_init();
+	if (err)
+	{
+		return 0;
+	}
+	while(!start_test);
+
+	err = esb_initialize(g_periph_choice);
 	if (err)
 	{
 		LOG_ERR("ESB initialization failed, err %d", err);
@@ -233,14 +351,20 @@ int main(void)
 	LOG_INF("Sending test packet");
 
 	tx_payload.noack = false;
-	uint8_t periph_choice = 0;
 	while (1)
-	{	
+	{
 		if (ready)
 		{
+			if(swap_device)
+			{
+				swap_device = false;
+				g_periph_choice = (g_periph_choice + 1) % NUM_PRX_PERIPH;
+				app_esb_rotate_device(g_periph_choice);
+			}
 			ready = false;
 			esb_flush_tx();
 			leds_update(tx_payload.data[1]);
+
 			err = esb_write_payload(&tx_payload);
 			if (err)
 			{
@@ -248,10 +372,7 @@ int main(void)
 			}
 			tx_payload.data[1]++;
 		}
-		// rotate device
-		esb_disable();
-		periph_choice = (periph_choice++) & (NUM_PRX_PERIPH-1); // if pow2, will be circular
-		
-		k_sleep(K_MSEC(100));
+
+		k_sleep(K_MSEC(100)); // TODO: probably want to remove this for performance gauging.
 	}
 }

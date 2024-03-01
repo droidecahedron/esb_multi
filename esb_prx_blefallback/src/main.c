@@ -15,13 +15,6 @@
 #include <zephyr/kernel.h>
 #include <zephyr/types.h>
 
-// 52840dk
-#define dk_button1_msk 1 << 11 // button1 is gpio pin 11 in the .dts
-#define dk_button2_msk 1 << 12 // button2 is gpio pin 12 in the .dts
-#define dk_button3_msk 1 << 24 // button3 is gpio pin 24 in the .dts
-#define dk_button4_msk 1 << 25 // button4 is gpio pin 25 in the .dts
-#define GPIO_SPEC_AND_COMMA(button_or_led) GPIO_DT_SPEC_GET(button_or_led, gpios),
-
 LOG_MODULE_REGISTER(esb_prx);
 
 static const struct gpio_dt_spec leds[] = {
@@ -39,9 +32,17 @@ BUILD_ASSERT(DT_SAME_NODE(DT_GPIO_CTLR(DT_ALIAS(led0), gpios),
 							  DT_GPIO_CTLR(DT_ALIAS(led3), gpios)),
 			 "All LEDs must be on the same port");
 
+// 52840dk
+#define dk_button1_msk 1 << 11 // button1 is gpio pin 11 in the .dts
+#define dk_button2_msk 1 << 12 // button2 is gpio pin 12 in the .dts
+#define dk_button3_msk 1 << 24 // button3 is gpio pin 24 in the .dts
+#define dk_button4_msk 1 << 25 // button4 is gpio pin 25 in the .dts
+#define GPIO_SPEC_AND_COMMA(button_or_led) GPIO_DT_SPEC_GET(button_or_led, gpios),
+#define BUTTONS_NODE DT_PATH(buttons)
 static const struct gpio_dt_spec buttons[] = {
-	GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios),
-	GPIO_DT_SPEC_GET(DT_ALIAS(sw1), gpios),
+#if DT_NODE_EXISTS(BUTTONS_NODE)
+    DT_FOREACH_CHILD(BUTTONS_NODE, GPIO_SPEC_AND_COMMA)
+#endif
 };
 
 static struct gpio_callback button_callback;
@@ -54,12 +55,7 @@ static struct esb_payload tx_payload = ESB_CREATE_PAYLOAD(0,
  * different addresses should be used for each set of devices.
  */
 #define NUM_PRX_PERIPH 2
-uint8_t g_base_addr_0[NUM_PRX_PERIPH][4] = {{0xE7, 0xE7, 0xE7, 0xE7}, {0xEE, 0xEE, 0xEE, 0xEE}};
-uint8_t g_base_addr_1[NUM_PRX_PERIPH][4] = {{0xC2, 0xC2, 0xC2, 0xC2}, {0xCC, 0xCC, 0xCC, 0xCC}};
-uint8_t addr_prefix[8] = {0xE7, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8}; // pretty sure you can just have these be the same.
-uint32_t g_channels[NUM_PRX_PERIPH] = {2, 4}; // channel selection per periph
-
-volatile int peripheral_number = -1; // used to select ^ in the inits
+volatile int peripheral_number = -1; // used to select addr0 and channel in the inits
 
 static int leds_init(void)
 {
@@ -207,12 +203,13 @@ void event_handler(struct esb_evt const *event)
 					rx_payload.data[5], rx_payload.data[6],
 					rx_payload.data[7]);
 
-			leds_update(rx_payload.data[1]);
+			leds_update(rx_payload.data[1]); // this might be slow.
 		}
 		else
 		{
 			LOG_ERR("Error while reading rx packet");
 		}
+		LOG_INF("RX RECEIVED");
 		break;
 	}
 }
@@ -258,6 +255,11 @@ int esb_initialize(void)
 {
 	int err;
 
+	uint8_t g_base_addr_0[NUM_PRX_PERIPH][4] = {{0xE7, 0xE7, 0xE7, 0xE7}, {0xEE, 0xEE, 0xEE, 0xEE}};
+	uint8_t base_addr_1[4] = {0xC2, 0xC2, 0xC2, 0xC2};
+	uint8_t addr_prefix[8] = {0xE7, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8};
+	uint32_t g_channels[NUM_PRX_PERIPH] = {2, 4}; // channel selection per periph
+
 	struct esb_config config = ESB_DEFAULT_CONFIG;
 
 	config.protocol = ESB_PROTOCOL_ESB_DPL;
@@ -278,7 +280,7 @@ int esb_initialize(void)
 		return err;
 	}
 
-	err = esb_set_base_address_1(g_base_addr_1[peripheral_number]);
+	err = esb_set_base_address_1(base_addr_1);
 	if (err)
 	{
 		return err;
@@ -291,7 +293,7 @@ int esb_initialize(void)
 	}
 
 	err = esb_set_rf_channel(g_channels[peripheral_number]);
-	if(err)
+	if (err)
 	{
 		return err;
 	}
@@ -326,7 +328,7 @@ int main(void)
 	// wait until peripheral number selection
 	while (peripheral_number < 0)
 	{
-		//press button 1 or 2.
+		// press button 1 or 2.
 	}
 
 	err = esb_initialize();

@@ -1,6 +1,8 @@
 # Overview
 Primary transmitter (PTX) will go round-robin and send a packet to each primary receiver (PRX). PRXs peripherals will send data back to central PTX via ACK payloads.
 
+Press button 1 or 2 on a PRX to be on channel/address selection 1 or 2.
+Press button 1 on the PTX to start the test. Make sure to start it after you assing the PRXs to each channel you want them on.
 
 ### notes
 Association: The transmitter and receiver need the same addr, channel, and packet config (e.g. num address bytes, CRC bytes, etc).
