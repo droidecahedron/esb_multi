@@ -387,6 +387,7 @@ int main(void)
 			tx_payload.data[1]++;
 		}
 
-		k_sleep(K_MSEC(100)); // TODO: probably want to remove this for performance gauging.
+		k_yield();
+		//k_sleep(K_MSEC(100)); // TODO: probably want to remove this for performance gauging.
 	}
 }
