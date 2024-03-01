@@ -139,6 +139,8 @@ int esb_initialize(int peripheral_choice)
 	config.event_handler = event_handler;
 	config.mode = ESB_MODE_PTX;
 	config.selective_auto_ack = true;
+	config.retransmit_count = 0; // dont retransmit.
+	config.use_fast_ramp_up = true;
 
 	err = esb_init(&config);
 
@@ -369,7 +371,7 @@ int main(void)
 	{
 		if (ready)
 		{
-			if (swap_device)
+			if (true)
 			{
 				swap_device = false;
 				g_periph_choice = (g_periph_choice + 1) % NUM_PRX_PERIPH;

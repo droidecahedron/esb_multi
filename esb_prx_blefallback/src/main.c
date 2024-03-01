@@ -273,6 +273,8 @@ int esb_initialize(void)
 	config.mode = ESB_MODE_PRX;
 	config.event_handler = event_handler;
 	config.selective_auto_ack = true;
+	config.retransmit_count = 0; // dont retransmit.
+	config.use_fast_ramp_up = true;
 
 	err = esb_init(&config);
 	if (err)
