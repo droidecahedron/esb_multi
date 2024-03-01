@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Nordic Semiconductor ASA
+ * Copyright (c) 2024 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
@@ -15,7 +15,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/types.h>
 
-LOG_MODULE_REGISTER(esb_ptx, CONFIG_ESB_PTX_APP_LOG_LEVEL);
+LOG_MODULE_REGISTER(esb_ptx);
 
 static const struct gpio_dt_spec leds[] = {
 	GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios),
@@ -180,6 +180,9 @@ static void leds_update(uint8_t value)
 
 	(void)gpio_port_set_masked_raw(leds[0].port, mask, val);
 }
+
+
+
 
 int main(void)
 {
