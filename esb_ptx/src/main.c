@@ -17,10 +17,31 @@
 #include <zephyr/types.h>
 #include <nrfx_gpiote.h>
 
+#include <debug/ppi_trace.h>
+#include <hal/nrf_radio.h>
+#include <hal/nrf_uarte.h>
+
 LOG_MODULE_REGISTER(esb_ptx);
 
 // radio debug pin
 #define TEST_PIN 31
+static void radio_ppi_trace_setup(void)
+{
+	uint32_t start_evt;
+	uint32_t stop_evt;
+	void *handle;
+
+	start_evt = nrf_radio_event_address_get(NRF_RADIO,
+				NRF_RADIO_EVENT_READY);
+	stop_evt = nrf_radio_event_address_get(NRF_RADIO,
+				NRF_RADIO_EVENT_DISABLED);
+
+	handle = ppi_trace_pair_config(29,
+				start_evt, stop_evt); // pin is high when radio is active
+	__ASSERT(handle != NULL, "Failed to configure PPI trace pair.\n");
+
+	ppi_trace_enable(handle);
+}
 
 static const struct gpio_dt_spec leds[] = {
 	GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios),
@@ -332,6 +353,8 @@ int main(void)
 	// init test pin
 	nrf_gpio_cfg_output(TEST_PIN);
 	nrf_gpio_pin_clear(TEST_PIN); // start clear
+
+	radio_ppi_trace_setup();
 
 	err = clocks_start();
 	if (err)
