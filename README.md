@@ -6,7 +6,13 @@ Press button 1 on the PTX to start the test. Make sure to start it after you ass
 
 ![image](https://github.com/droidecahedron/esb_multi/assets/63935881/7fc481ae-73f1-47f2-a0fe-97e0511467dc)
 
+Pin29 is the PPI Toggle. Pin 31 is the application ESB callback toggle.
 
+![image](https://github.com/droidecahedron/esb_multi/assets/63935881/84d35463-94e3-4a12-8939-fb789f12046a)
+
+_Image: PPI Toggle waveform_
+
+For calculating theoretical best performance, visit https://devzone.nordicsemi.com/nordic/nordic-blog/b/blog/posts/intro-to-shockburstenhanced-shockburst
 
 ### notes
 Association: The transmitter and receiver need the same addr, channel, and packet config (e.g. num address bytes, CRC bytes, etc).
