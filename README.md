@@ -4,6 +4,9 @@ Primary transmitter (PTX) will go round-robin and send a packet to each primary 
 Press button 1 or 2 on a PRX to be on channel/address selection 1 or 2.
 Press button 1 on the PTX to start the test. Make sure to start it after you assing the PRXs to each channel you want them on.
 
+![image](https://github.com/droidecahedron/esb_multi/assets/63935881/b3bccdbf-c35e-4bb1-8043-b866f4ac82ee)
+
+
 ### notes
 Association: The transmitter and receiver need the same addr, channel, and packet config (e.g. num address bytes, CRC bytes, etc).
 > Note: The on-air addresses are composed of a 2-4 byte long base address in addition to a 1 byte prefix address. Note that the nRF5 radio uses an alternating sequence of 0 and 1 as the preamble of the packet. Therefore, for packets to be received correctly, the most significant byte of the base address must not be an alternating sequence of 0 and 1, that is, it must not be 0x55 or 0xAA.
