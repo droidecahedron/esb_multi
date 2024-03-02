@@ -1,17 +1,17 @@
 # Overview
+
+![image](https://github.com/droidecahedron/esb_multi/assets/63935881/17b1016d-957e-4745-af8d-fea1c5574c49)
+
 Primary transmitter (PTX) will go round-robin and send a packet to each primary receiver (PRX). PRXs peripherals will send data back to central PTX via ACK payloads.
 
 Press button 1 or 2 on a PRX to be on channel/address selection 1 or 2.
 Press button 1 on the PTX to start the test. Make sure to start it after you assing the PRXs to each channel you want them on.
 
-![image](https://github.com/droidecahedron/esb_multi/assets/63935881/17b1016d-957e-4745-af8d-fea1c5574c49)
-
-
 Pin29 is the PPI Toggle. Pin 31 is the application ESB callback toggle.
 
 ![image](https://github.com/droidecahedron/esb_multi/assets/63935881/b66ecdc6-a054-44c3-990f-8c63356a7170)
 
-_Image: PPI Toggle waveform_
+*PPI Toggle waveform*
 
 For calculating theoretical best performance, visit https://devzone.nordicsemi.com/nordic/nordic-blog/b/blog/posts/intro-to-shockburstenhanced-shockburst
 
