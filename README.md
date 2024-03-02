@@ -4,7 +4,8 @@ Primary transmitter (PTX) will go round-robin and send a packet to each primary 
 Press button 1 or 2 on a PRX to be on channel/address selection 1 or 2.
 Press button 1 on the PTX to start the test. Make sure to start it after you assing the PRXs to each channel you want them on.
 
-![image](https://github.com/droidecahedron/esb_multi/assets/63935881/7fc481ae-73f1-47f2-a0fe-97e0511467dc)
+![image](https://github.com/droidecahedron/esb_multi/assets/63935881/17b1016d-957e-4745-af8d-fea1c5574c49)
+
 
 Pin29 is the PPI Toggle. Pin 31 is the application ESB callback toggle.
 
