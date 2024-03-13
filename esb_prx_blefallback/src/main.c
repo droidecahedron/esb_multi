@@ -317,17 +317,17 @@ int esb_initialize(void)
 
 int rf_swap(void)
 {
-	int err = 0;
+	int err = 0; // if neg for ctrl
 
-	if(ble_fallback)
+	if (ble_fallback)
 	{
 		esb_disable();
-		bt_enable(NULL);
+		err = bt_enable(NULL);
 	}
 	else
 	{
 		bt_disable();
-		esb_initialize();
+		err = esb_initialize();
 	}
 
 	return err;
