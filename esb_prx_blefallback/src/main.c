@@ -360,6 +360,12 @@ int main(void)
 		return 0;
 	}
 
+	err = app_bt_init();
+	if(err)
+	{
+		return 0;
+	}
+
 	// wait until peripheral number selection
 	while (peripheral_number < 0)
 	{

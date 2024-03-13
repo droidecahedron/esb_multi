@@ -7,13 +7,13 @@
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/uuid.h>
 #include <zephyr/bluetooth/gatt.h>
-
 #include <bluetooth/services/lbs.h>
 
 #include <zephyr/settings/settings.h>
 
 #include <dk_buttons_and_leds.h>
 
-void app_bt_init(void);
+
+int app_bt_init(void);
 
 #endif /* BLE_SERVICE_H_ */
