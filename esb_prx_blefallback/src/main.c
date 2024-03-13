@@ -88,112 +88,6 @@ static struct esb_payload tx_payload = ESB_CREATE_PAYLOAD(0,
 volatile int peripheral_number = -1; // used to select addr0 and channel in the inits
 volatile bool ble_fallback = false;
 
-static int leds_init(void)
-{
-	if (!device_is_ready(leds[0].port))
-	{
-		LOG_ERR("LEDs port not ready");
-		return -ENODEV;
-	}
-
-	for (size_t i = 0; i < ARRAY_SIZE(leds); i++)
-	{
-		int err = gpio_pin_configure_dt(&leds[i], GPIO_OUTPUT);
-
-		if (err)
-		{
-			LOG_ERR("Unable to configure LED%u, err %d.", i, err);
-			return err;
-		}
-	}
-
-	return 0;
-}
-
-void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
-{
-	LOG_INF("Button pressed at %" PRIu32, k_cycle_get_32());
-	LOG_INF("pins var: %d", pins);
-
-	switch (pins)
-	{
-	case dk_button1_msk:
-		LOG_INF("BUTTON1");
-		peripheral_number = 0; // first peripheral
-		break;
-
-	case dk_button2_msk:
-		LOG_INF("BUTTON2");
-		peripheral_number = 1;
-		break;
-
-	case dk_button3_msk:
-		LOG_INF("BUTTON3");
-		break;
-
-	case dk_button4_msk:
-		LOG_INF("BUTTON4");
-		break;
-
-	default:
-		LOG_INF("unknown pin in button callback");
-	}
-}
-
-static int buttons_init(void)
-{
-	int err = NRFX_SUCCESS;
-	if (!device_is_ready(buttons[0].port))
-	{
-		LOG_ERR("LEDs port not ready");
-		return -ENODEV;
-	}
-
-	//--- Buttons
-	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
-	{
-		/* Enable pull resistor towards the inactive voltage. */
-		gpio_flags_t flags =
-			buttons[i].dt_flags & GPIO_ACTIVE_LOW ? GPIO_PULL_UP : GPIO_PULL_DOWN;
-		err = gpio_pin_configure_dt(&buttons[i], GPIO_INPUT | flags);
-
-		if (err)
-		{
-			LOG_ERR("Cannot configure button gpio");
-			return err;
-		}
-	}
-
-	uint32_t pin_mask = 0;
-
-	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
-	{
-		err = gpio_pin_interrupt_configure_dt(&buttons[i],
-											  GPIO_INT_EDGE_TO_ACTIVE);
-		if (err)
-		{
-			LOG_ERR("Cannot disable callbacks()");
-			return err;
-		}
-
-		pin_mask |= BIT(buttons[i].pin);
-	}
-
-	gpio_init_callback(&button_callback, button_pressed, pin_mask);
-
-	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
-	{
-		err = gpio_add_callback(buttons[i].port, &button_callback);
-		if (err)
-		{
-			LOG_ERR("Cannot add callback");
-			return err;
-		}
-	}
-
-	return err;
-}
-
 void event_handler(struct esb_evt const *event)
 {
 	switch (event->evt_id)
@@ -333,6 +227,109 @@ int rf_swap(void)
 	return err;
 }
 
+static int leds_init(void)
+{
+	if (!device_is_ready(leds[0].port))
+	{
+		LOG_ERR("LEDs port not ready");
+		return -ENODEV;
+	}
+
+	for (size_t i = 0; i < ARRAY_SIZE(leds); i++)
+	{
+		int err = gpio_pin_configure_dt(&leds[i], GPIO_OUTPUT);
+
+		if (err)
+		{
+			LOG_ERR("Unable to configure LED%u, err %d.", i, err);
+			return err;
+		}
+	}
+
+	return 0;
+}
+
+void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+{
+	LOG_INF("Button pressed at %" PRIu32, k_cycle_get_32());
+	LOG_INF("pins var: %d", pins);
+
+	switch (pins)
+	{
+	case dk_button1_msk:
+		LOG_INF("BUTTON1");
+		peripheral_number = 0; // first peripheral
+		break;
+
+	case dk_button2_msk:
+		LOG_INF("BUTTON2");
+		peripheral_number = 1;
+		break;
+
+	case dk_button3_msk:
+		LOG_INF("BUTTON3");
+		ble_fallback = !(ble_fallback);
+		rf_swap();
+		break;
+
+	case dk_button4_msk:
+		LOG_INF("BUTTON4");
+		break;
+
+	default:
+		LOG_INF("unknown pin in button callback");
+	}
+}
+
+static int buttons_init(void)
+{
+	int err = NRFX_SUCCESS;
+	if (!device_is_ready(buttons[0].port))
+	{
+		LOG_ERR("LEDs port not ready");
+		return -ENODEV;
+	}
+
+	//--- Buttons
+	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
+	{
+		/* Enable pull resistor towards the inactive voltage. */
+		gpio_flags_t flags =
+			buttons[i].dt_flags & GPIO_ACTIVE_LOW ? GPIO_PULL_UP : GPIO_PULL_DOWN;
+		err = gpio_pin_configure_dt(&buttons[i], GPIO_INPUT | flags);
+
+		if (err)
+		{
+			LOG_ERR("Cannot configure button gpio");
+			return err;
+		}
+	}
+
+	uint32_t pin_mask = 0;
+	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
+	{
+		err = gpio_pin_interrupt_configure_dt(&buttons[i], GPIO_INT_EDGE_TO_ACTIVE);
+		if (err)
+		{
+			LOG_ERR("Cannot disable callbacks()");
+			return err;
+		}
+		pin_mask |= BIT(buttons[i].pin);
+	}
+
+	gpio_init_callback(&button_callback, button_pressed, pin_mask);
+	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
+	{
+		err = gpio_add_callback(buttons[i].port, &button_callback);
+		if (err)
+		{
+			LOG_ERR("Cannot add callback");
+			return err;
+		}
+	}
+	return err;
+}
+
 int main(void)
 {
 	int err;
@@ -361,7 +358,7 @@ int main(void)
 	}
 
 	err = app_bt_init();
-	if(err)
+	if (err)
 	{
 		return 0;
 	}
