@@ -17,21 +17,12 @@
 #include <zephyr/types.h>
 #include <nrfx_gpiote.h>
 
+#include "ble/ble_service.h"
+
 // radio debugs
 #include <debug/ppi_trace.h>
 #include <hal/nrf_radio.h>
 #include <hal/nrf_uarte.h>
-
-// ble
-#include <zephyr/bluetooth/bluetooth.h>
-#include <zephyr/bluetooth/hci.h>
-#include <zephyr/bluetooth/conn.h>
-#include <zephyr/bluetooth/uuid.h>
-#include <zephyr/bluetooth/gatt.h>
-
-#include <bluetooth/services/lbs.h>
-#include <zephyr/settings/settings.h>
-#include <dk_buttons_and_leds.h>
 
 LOG_MODULE_REGISTER(esb_prx);
 
@@ -95,6 +86,7 @@ static struct esb_payload tx_payload = ESB_CREATE_PAYLOAD(0,
  */
 #define NUM_PRX_PERIPH 2
 volatile int peripheral_number = -1; // used to select addr0 and channel in the inits
+volatile bool ble_fallback = false;
 
 static int leds_init(void)
 {
@@ -323,13 +315,19 @@ int esb_initialize(void)
 	return 0;
 }
 
-int rf_swap(int choice)
+int rf_swap(void)
 {
 	int err = 0;
 
-	// esb_disable();
-	// esb_initialize(peripheral_choice); // gotta do this if using esb_disable
-	// esb_start_tx();
+	if(ble_fallback)
+	{
+		esb_disable();
+	}
+	else
+	{
+		bt_disable();
+		esb_initialize();
+	}
 
 	return err;
 }
