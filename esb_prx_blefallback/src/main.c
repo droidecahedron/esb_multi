@@ -17,14 +17,27 @@
 #include <zephyr/types.h>
 #include <nrfx_gpiote.h>
 
+// radio debugs
 #include <debug/ppi_trace.h>
 #include <hal/nrf_radio.h>
 #include <hal/nrf_uarte.h>
 
+// ble
+#include <zephyr/bluetooth/bluetooth.h>
+#include <zephyr/bluetooth/hci.h>
+#include <zephyr/bluetooth/conn.h>
+#include <zephyr/bluetooth/uuid.h>
+#include <zephyr/bluetooth/gatt.h>
+
+#include <bluetooth/services/lbs.h>
+#include <zephyr/settings/settings.h>
+#include <dk_buttons_and_leds.h>
+
 LOG_MODULE_REGISTER(esb_prx);
 
-// radio debug pin
-#define TEST_PIN 31
+// radio debugging
+#define TEST_PIN 29 // this test pin is in the esb cb
+#define RADIO_TEST_PIN 31
 static void radio_ppi_trace_setup(void)
 {
 	uint32_t start_evt;
@@ -32,12 +45,12 @@ static void radio_ppi_trace_setup(void)
 	void *handle;
 
 	start_evt = nrf_radio_event_address_get(NRF_RADIO,
-				NRF_RADIO_EVENT_READY);
+											NRF_RADIO_EVENT_READY);
 	stop_evt = nrf_radio_event_address_get(NRF_RADIO,
-				NRF_RADIO_EVENT_DISABLED);
+										   NRF_RADIO_EVENT_DISABLED);
 
-	handle = ppi_trace_pair_config(29,
-				start_evt, stop_evt); // pin is high when radio is active
+	handle = ppi_trace_pair_config(RADIO_TEST_PIN,
+								   start_evt, stop_evt); // pin is high when radio is active
 	__ASSERT(handle != NULL, "Failed to configure PPI trace pair.\n");
 
 	ppi_trace_enable(handle);
@@ -189,24 +202,6 @@ static int buttons_init(void)
 	return err;
 }
 
-static void leds_update(uint8_t value)
-{
-	bool led0_status = !(value % 8 > 0 && value % 8 <= 4);
-	bool led1_status = !(value % 8 > 1 && value % 8 <= 5);
-	bool led2_status = !(value % 8 > 2 && value % 8 <= 6);
-	bool led3_status = !(value % 8 > 3);
-
-	gpio_port_pins_t mask = BIT(leds[0].pin) | BIT(leds[1].pin) |
-							BIT(leds[2].pin) | BIT(leds[3].pin);
-
-	gpio_port_value_t val = led0_status << leds[0].pin |
-							led1_status << leds[1].pin |
-							led2_status << leds[2].pin |
-							led3_status << leds[3].pin;
-
-	gpio_port_set_masked_raw(leds[0].port, mask, val);
-}
-
 void event_handler(struct esb_evt const *event)
 {
 	switch (event->evt_id)
@@ -228,8 +223,6 @@ void event_handler(struct esb_evt const *event)
 					rx_payload.data[3], rx_payload.data[4],
 					rx_payload.data[5], rx_payload.data[6],
 					rx_payload.data[7]);
-
-			//leds_update(rx_payload.data[1]); // this might be slow.
 		}
 		else
 		{
@@ -330,6 +323,17 @@ int esb_initialize(void)
 	return 0;
 }
 
+int rf_swap(int choice)
+{
+	int err = 0;
+
+	// esb_disable();
+	// esb_initialize(peripheral_choice); // gotta do this if using esb_disable
+	// esb_start_tx();
+
+	return err;
+}
+
 int main(void)
 {
 	int err;
@@ -337,8 +341,6 @@ int main(void)
 	LOG_INF("Enhanced ShockBurst prx sample");
 
 	// init test pin
-	nrf_gpio_cfg_output(TEST_PIN);
-	nrf_gpio_pin_clear(TEST_PIN); // start clear
 	radio_ppi_trace_setup();
 
 	err = clocks_start();
