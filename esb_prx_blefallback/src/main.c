@@ -322,6 +322,7 @@ int rf_swap(void)
 	if(ble_fallback)
 	{
 		esb_disable();
+		bt_enable(NULL);
 	}
 	else
 	{
