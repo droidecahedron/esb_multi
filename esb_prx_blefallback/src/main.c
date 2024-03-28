@@ -86,7 +86,7 @@ static struct esb_payload tx_payload = ESB_CREATE_PAYLOAD(0,
  */
 #define NUM_PRX_PERIPH 2
 volatile int peripheral_number = -1; // used to select addr0 and channel in the inits
-volatile bool ble_fallback = false;
+volatile bool esb_running = true;
 
 void event_handler(struct esb_evt const *event)
 {
@@ -209,22 +209,27 @@ int esb_initialize(void)
 	return 0;
 }
 
-int rf_swap(void)
+// RF Swap workQ
+// So it runs from a cooperative thread. Work thread is cooperative, so calling fxn as work item works.
+static struct k_work rf_swap_work;
+static void rf_swap_work_fxn(struct k_work *work)
 {
-	int err = 0; // if neg for ctrl
-
-	if (ble_fallback)
+	if (esb_running)
 	{
+		LOG_INF("Disable ESB, Enable BLE");
+		esb_running = false;
+		esb_stop_rx();
 		esb_disable();
-		err = bt_enable(NULL);
+		bt_enable(NULL);
 	}
 	else
 	{
+		LOG_INF("Disable BLE, Enable ESB");
+		esb_running = true;
 		bt_disable();
-		err = esb_initialize();
+		esb_initialize();
+		esb_start_rx();
 	}
-
-	return err;
 }
 
 static int leds_init(void)
@@ -268,8 +273,10 @@ void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t
 
 	case dk_button3_msk:
 		LOG_INF("BUTTON3");
-		ble_fallback = !(ble_fallback);
-		rf_swap();
+		if (peripheral_number >= 0)
+		{
+			k_work_submit(&rf_swap_work);
+		}
 		break;
 
 	case dk_button4_msk:
@@ -339,6 +346,8 @@ int main(void)
 	// init test pin
 	radio_ppi_trace_setup();
 
+	k_work_init(&rf_swap_work, rf_swap_work_fxn);
+
 	err = clocks_start();
 	if (err)
 	{
@@ -357,7 +366,7 @@ int main(void)
 		return 0;
 	}
 
-	err = app_bt_init();
+	//err = app_bt_init();
 	if (err)
 	{
 		return 0;
@@ -367,6 +376,7 @@ int main(void)
 	while (peripheral_number < 0)
 	{
 		// press button 1 or 2 to set up device and leave
+		k_msleep(100);
 	}
 
 	err = esb_initialize();

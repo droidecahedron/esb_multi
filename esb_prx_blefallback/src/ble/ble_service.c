@@ -153,9 +153,10 @@ static int init_button(void)
     int err;
 
     err = dk_buttons_init(button_changed);
+
     if (err)
     {
-        LOG_INF("Cannot init buttons (err: %d)\n", err);
+        LOG_INF("Cannot init input (err: %d)\n", err);
     }
 
     return err;
@@ -165,7 +166,7 @@ int app_bt_init(void)
 {
     int err;
 
-    err = init_button();
+    //err = init_button();
     if (err)
     {
         LOG_INF("Button init failed (err %d)\n", err);
