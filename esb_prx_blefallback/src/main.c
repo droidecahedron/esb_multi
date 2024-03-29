@@ -17,14 +17,18 @@
 #include <zephyr/types.h>
 #include <nrfx_gpiote.h>
 
+#include "ble/ble_service.h"
+
+// radio debugs
 #include <debug/ppi_trace.h>
 #include <hal/nrf_radio.h>
 #include <hal/nrf_uarte.h>
 
 LOG_MODULE_REGISTER(esb_prx);
 
-// radio debug pin
-#define TEST_PIN 31
+// radio debugging
+#define TEST_PIN 29 // this test pin is in the esb cb
+#define RADIO_TEST_PIN 31
 static void radio_ppi_trace_setup(void)
 {
 	uint32_t start_evt;
@@ -32,12 +36,12 @@ static void radio_ppi_trace_setup(void)
 	void *handle;
 
 	start_evt = nrf_radio_event_address_get(NRF_RADIO,
-				NRF_RADIO_EVENT_READY);
+											NRF_RADIO_EVENT_READY);
 	stop_evt = nrf_radio_event_address_get(NRF_RADIO,
-				NRF_RADIO_EVENT_DISABLED);
+										   NRF_RADIO_EVENT_DISABLED);
 
-	handle = ppi_trace_pair_config(29,
-				start_evt, stop_evt); // pin is high when radio is active
+	handle = ppi_trace_pair_config(RADIO_TEST_PIN,
+								   start_evt, stop_evt); // pin is high when radio is active
 	__ASSERT(handle != NULL, "Failed to configure PPI trace pair.\n");
 
 	ppi_trace_enable(handle);
@@ -82,130 +86,7 @@ static struct esb_payload tx_payload = ESB_CREATE_PAYLOAD(0,
  */
 #define NUM_PRX_PERIPH 2
 volatile int peripheral_number = -1; // used to select addr0 and channel in the inits
-
-static int leds_init(void)
-{
-	if (!device_is_ready(leds[0].port))
-	{
-		LOG_ERR("LEDs port not ready");
-		return -ENODEV;
-	}
-
-	for (size_t i = 0; i < ARRAY_SIZE(leds); i++)
-	{
-		int err = gpio_pin_configure_dt(&leds[i], GPIO_OUTPUT);
-
-		if (err)
-		{
-			LOG_ERR("Unable to configure LED%u, err %d.", i, err);
-			return err;
-		}
-	}
-
-	return 0;
-}
-
-void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
-{
-	LOG_INF("Button pressed at %" PRIu32, k_cycle_get_32());
-	LOG_INF("pins var: %d", pins);
-
-	switch (pins)
-	{
-	case dk_button1_msk:
-		LOG_INF("BUTTON1");
-		peripheral_number = 0; // first peripheral
-		break;
-
-	case dk_button2_msk:
-		LOG_INF("BUTTON2");
-		peripheral_number = 1;
-		break;
-
-	case dk_button3_msk:
-		LOG_INF("BUTTON3");
-		break;
-
-	case dk_button4_msk:
-		LOG_INF("BUTTON4");
-		break;
-
-	default:
-		LOG_INF("unknown pin in button callback");
-	}
-}
-
-static int buttons_init(void)
-{
-	int err = NRFX_SUCCESS;
-	if (!device_is_ready(buttons[0].port))
-	{
-		LOG_ERR("LEDs port not ready");
-		return -ENODEV;
-	}
-
-	//--- Buttons
-	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
-	{
-		/* Enable pull resistor towards the inactive voltage. */
-		gpio_flags_t flags =
-			buttons[i].dt_flags & GPIO_ACTIVE_LOW ? GPIO_PULL_UP : GPIO_PULL_DOWN;
-		err = gpio_pin_configure_dt(&buttons[i], GPIO_INPUT | flags);
-
-		if (err)
-		{
-			LOG_ERR("Cannot configure button gpio");
-			return err;
-		}
-	}
-
-	uint32_t pin_mask = 0;
-
-	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
-	{
-		err = gpio_pin_interrupt_configure_dt(&buttons[i],
-											  GPIO_INT_EDGE_TO_ACTIVE);
-		if (err)
-		{
-			LOG_ERR("Cannot disable callbacks()");
-			return err;
-		}
-
-		pin_mask |= BIT(buttons[i].pin);
-	}
-
-	gpio_init_callback(&button_callback, button_pressed, pin_mask);
-
-	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
-	{
-		err = gpio_add_callback(buttons[i].port, &button_callback);
-		if (err)
-		{
-			LOG_ERR("Cannot add callback");
-			return err;
-		}
-	}
-
-	return err;
-}
-
-static void leds_update(uint8_t value)
-{
-	bool led0_status = !(value % 8 > 0 && value % 8 <= 4);
-	bool led1_status = !(value % 8 > 1 && value % 8 <= 5);
-	bool led2_status = !(value % 8 > 2 && value % 8 <= 6);
-	bool led3_status = !(value % 8 > 3);
-
-	gpio_port_pins_t mask = BIT(leds[0].pin) | BIT(leds[1].pin) |
-							BIT(leds[2].pin) | BIT(leds[3].pin);
-
-	gpio_port_value_t val = led0_status << leds[0].pin |
-							led1_status << leds[1].pin |
-							led2_status << leds[2].pin |
-							led3_status << leds[3].pin;
-
-	gpio_port_set_masked_raw(leds[0].port, mask, val);
-}
+volatile bool esb_running = true;
 
 void event_handler(struct esb_evt const *event)
 {
@@ -228,8 +109,6 @@ void event_handler(struct esb_evt const *event)
 					rx_payload.data[3], rx_payload.data[4],
 					rx_payload.data[5], rx_payload.data[6],
 					rx_payload.data[7]);
-
-			//leds_update(rx_payload.data[1]); // this might be slow.
 		}
 		else
 		{
@@ -330,6 +209,134 @@ int esb_initialize(void)
 	return 0;
 }
 
+// RF Swap workQ
+// So it runs from a cooperative thread. Work thread is cooperative, so calling fxn as work item works.
+static struct k_work rf_swap_work;
+static void rf_swap_work_fxn(struct k_work *work)
+{
+	if (esb_running)
+	{
+		LOG_INF("Disable ESB, Enable BLE");
+		esb_running = false;
+		esb_stop_rx();
+		esb_disable();
+		app_bt_init();
+	}
+	else
+	{
+		LOG_INF("Disable BLE, Enable ESB");
+		esb_running = true;
+		bt_disable();
+		esb_initialize();
+		esb_start_rx();
+	}
+}
+
+static int leds_init(void)
+{
+	if (!device_is_ready(leds[0].port))
+	{
+		LOG_ERR("LEDs port not ready");
+		return -ENODEV;
+	}
+
+	for (size_t i = 0; i < ARRAY_SIZE(leds); i++)
+	{
+		int err = gpio_pin_configure_dt(&leds[i], GPIO_OUTPUT);
+
+		if (err)
+		{
+			LOG_ERR("Unable to configure LED%u, err %d.", i, err);
+			return err;
+		}
+	}
+
+	return 0;
+}
+
+void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+{
+	LOG_INF("Button pressed at %" PRIu32, k_cycle_get_32());
+	LOG_INF("pins var: %d", pins);
+
+	switch (pins)
+	{
+	case dk_button1_msk:
+		LOG_INF("BUTTON1");
+		peripheral_number = 0; // first peripheral
+		break;
+
+	case dk_button2_msk:
+		LOG_INF("BUTTON2");
+		peripheral_number = 1;
+		break;
+
+	case dk_button3_msk:
+		LOG_INF("BUTTON3");
+		if (peripheral_number >= 0)
+		{
+			k_work_submit(&rf_swap_work);
+		}
+		break;
+
+	case dk_button4_msk:
+		LOG_INF("BUTTON4");
+		break;
+
+	default:
+		LOG_INF("unknown pin in button callback");
+	}
+}
+
+static int buttons_init(void)
+{
+	int err = NRFX_SUCCESS;
+	if (!device_is_ready(buttons[0].port))
+	{
+		LOG_ERR("LEDs port not ready");
+		return -ENODEV;
+	}
+
+	//--- Buttons
+	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
+	{
+		/* Enable pull resistor towards the inactive voltage. */
+		gpio_flags_t flags =
+			buttons[i].dt_flags & GPIO_ACTIVE_LOW ? GPIO_PULL_UP : GPIO_PULL_DOWN;
+		err = gpio_pin_configure_dt(&buttons[i], GPIO_INPUT | flags);
+
+		if (err)
+		{
+			LOG_ERR("Cannot configure button gpio");
+			return err;
+		}
+	}
+
+	uint32_t pin_mask = 0;
+	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
+	{
+		err = gpio_pin_interrupt_configure_dt(&buttons[i], GPIO_INT_EDGE_TO_ACTIVE);
+		if (err)
+		{
+			LOG_ERR("Cannot disable callbacks()");
+			return err;
+		}
+		pin_mask |= BIT(buttons[i].pin);
+	}
+
+	gpio_init_callback(&button_callback, button_pressed, pin_mask);
+	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
+	{
+		err = gpio_add_callback(buttons[i].port, &button_callback);
+		if (err)
+		{
+			LOG_ERR("Cannot add callback");
+			return err;
+		}
+	}
+	return err;
+}
+
 int main(void)
 {
 	int err;
@@ -337,9 +344,9 @@ int main(void)
 	LOG_INF("Enhanced ShockBurst prx sample");
 
 	// init test pin
-	nrf_gpio_cfg_output(TEST_PIN);
-	nrf_gpio_pin_clear(TEST_PIN); // start clear
 	radio_ppi_trace_setup();
+
+	k_work_init(&rf_swap_work, rf_swap_work_fxn);
 
 	err = clocks_start();
 	if (err)
@@ -359,10 +366,18 @@ int main(void)
 		return 0;
 	}
 
+	err = app_bt_init();
+	if (err)
+	{
+		return 0;
+	}
+	bt_disable(); // esb application. disable after.
+
 	// wait until peripheral number selection
 	while (peripheral_number < 0)
 	{
 		// press button 1 or 2 to set up device and leave
+		k_msleep(100);
 	}
 
 	err = esb_initialize();
