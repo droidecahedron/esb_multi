@@ -15,7 +15,9 @@ Primary transmitter (PTX) will go round-robin and send a packet to each primary 
 # Testing/running application
 Probe Pin29 for the PPI Toggle (RADIO ACTIVITY). Pin 31 is the application ESB callback toggle in software.
 
-For calculating theoretical best performance, visit https://devzone.nordicsemi.com/nordic/nordic-blog/b/blog/posts/intro-to-shockburstenhanced-shockburst. Logging is in deferred mode to avoid slogging down the ESB callback in its default state.
+> For calculating theoretical best ESB performance, visit this [blog](https://devzone.nordicsemi.com/nordic/nordic-blog/b/blog/posts/intro-to-shockburstenhanced-shockburst).
+
+Logging is in deferred mode to avoid slogging down the ESB callback in its default state.
 
 You can search for esb_ble as a name filter with the [nRF Connect for Mobile App](https://www.nordicsemi.com/Products/Development-tools/nrf-connect-for-mobile) when you RF Swap.
 
