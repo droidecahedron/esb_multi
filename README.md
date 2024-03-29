@@ -1,11 +1,12 @@
 # Overview
 
-![image](https://github.com/droidecahedron/esb_multi/assets/63935881/17b1016d-957e-4745-af8d-fea1c5574c49)
+![image](https://github.com/droidecahedron/esb_multi/assets/63935881/a5b7c44e-4833-4971-904c-00db98955ab3)
 
 Primary transmitter (PTX) will go round-robin and send a packet to each primary receiver (PRX). PRXs peripherals will send data back to central PTX via ACK payloads.
+> NOTE: The present version of the application only supports 1 central PTX 2 peripheral PRX. This was my choice due to the # of buttons on the DK where you choose which PRX you want to be. At some point, I may add CLI as the user input to make it more flexible.
 
 Press button 1 or 2 on a PRX to be on channel/address selection 1 or 2.
-Press button 1 on the PTX to start the test. Make sure to start it after you assing the PRXs to each channel you want them on.
+Press button 1 on the PTX to start an ESB transmit loop. Make sure to start it after you assing the PRXs to each channel you want them on.
 Press button 3 on the PRX to swap to be a BLE LBS application.
 If the PRX is in the process of being spammed by the PTX in this application, you will not be able to swap from ESB to BLE due to the priorities. The intention of BLE is a fall-back communication method, so remove the PTX from the network in order to use the RF Swap button.
 
