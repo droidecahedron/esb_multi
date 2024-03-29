@@ -9,6 +9,12 @@ Press button 1 on the PTX to start the test. Make sure to start it after you ass
 Press button 3 on the PRX to swap to be a BLE LBS application.
 If the PRX is in the process of being spammed by the PTX in this application, you will not be able to swap from ESB to BLE due to the priorities. The intention of BLE is a fall-back communication method, so remove the PTX from the network in order to use the RF Swap button.
 
+You can search for esb_ble as a name filter with the [nRF Connect for Mobile App](https://www.nordicsemi.com/Products/Development-tools/nrf-connect-for-mobile) when you RF Swap.
+Logging is in deferred mode to avoid slogging down the ESB callback in its default state.
+
+![image](https://github.com/droidecahedron/esb_multi/assets/63935881/1c215178-7ab8-4a4a-8c41-fad8457cdf4c)
+
+
 Pin29 is the PPI Toggle. Pin 31 is the application ESB callback toggle.
 
 ![image](https://github.com/droidecahedron/esb_multi/assets/63935881/b66ecdc6-a054-44c3-990f-8c63356a7170)
