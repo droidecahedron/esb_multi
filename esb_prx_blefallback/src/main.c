@@ -373,6 +373,7 @@ int main(void)
 	}
 
 	// wait until peripheral number selection
+	peripheral_number = 1; // DEBUG: Force peripheral #
 	while (peripheral_number < 0)
 	{
 		// press button 1 or 2 to set up device and leave
@@ -402,6 +403,13 @@ int main(void)
 	{
 		LOG_ERR("RX setup failed, err %d", err);
 		return 0;
+	}
+
+	//DEBUG: rf swap every second
+	while(1)
+	{
+		k_work_submit(&rf_swap_work);
+		k_msleep(1000);
 	}
 
 	/* return to idle thread */
