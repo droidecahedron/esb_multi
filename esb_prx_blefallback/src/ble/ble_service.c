@@ -164,9 +164,9 @@ static int init_button(void)
 
 int app_bt_init(void)
 {
-    int err;
+    int err = 0;
 
-    //err = init_button();
+    err = init_button();
     if (err)
     {
         LOG_INF("Button init failed (err %d)\n", err);
@@ -217,8 +217,6 @@ int app_bt_init(void)
         LOG_INF("Advertising failed to start (err %d)\n", err);
         return err;
     }
-
-    bt_disable(); // esb application. disable after.
 
     return 0;
 }
