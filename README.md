@@ -52,7 +52,7 @@ independent channels are not necessary for this application, but I included it a
 
 changing channel: The module must be in an idle state to call this function. As a PTX, the application must wait for an idle state and as a PRX, the application must stop RX before changing the channel. After changing the channel, operation can be resumed.
 
-Round-trip latency: Realistically you should probably double-ping from the PTX if your response depends on input from the PTX. A data packet, then a second exchange to pick up the ACK data from the PRX.
+Round-trip latency: Realistically you should probably double-ping from the PTX if your response depends on input from the PTX. A data packet, then a second exchange to pick up the ACK data from the PRX. (as a workaround to the fact that you preload ACKs by default)
 
 > TODO:
 > Clean up, abstract ESB and IO portion to their own files.
