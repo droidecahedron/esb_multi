@@ -343,7 +343,6 @@ int main(void)
 
 	LOG_INF("Enhanced ShockBurst prx sample");
 
-	// init test pin
 	radio_ppi_trace_setup();
 
 	k_work_init(&rf_swap_work, rf_swap_work_fxn);
@@ -371,7 +370,7 @@ int main(void)
 	{
 		return 0;
 	}
-	bt_disable(); // esb application. disable after.
+	bt_disable(); // esb app first
 
 	// wait until peripheral number selection
 	while (peripheral_number < 0)
