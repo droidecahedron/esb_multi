@@ -220,7 +220,7 @@ static void rf_swap_work_fxn(struct k_work *work)
 		esb_running = false;
 		esb_stop_rx();
 		esb_disable();
-		app_bt_init();
+		app_bt_restart();
 	}
 	else
 	{
