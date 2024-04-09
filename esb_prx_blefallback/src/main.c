@@ -218,7 +218,7 @@ static void rf_swap_work_fxn(struct k_work *work)
 	{
 		LOG_INF("Disable ESB, Enable BLE");
 		esb_running = false;
-		esb_stop_rx();
+		//esb_stop_rx();
 		esb_disable();
 		app_bt_restart();
 	}
