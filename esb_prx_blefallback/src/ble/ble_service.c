@@ -59,7 +59,7 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
     else
     {
         LOG_INF("Security failed: %s level %u err %d\n", addr, level,
-               err);
+                err);
     }
 }
 #endif
@@ -166,7 +166,7 @@ int app_bt_init(void)
 {
     int err = 0;
 
-    err = init_button();
+    // err = init_button(); // DO NOT UNCOMMENT THIS. This FXN is called in rf_swap_work, so you do not want to init over and over.
     if (err)
     {
         LOG_INF("Button init failed (err %d)\n", err);

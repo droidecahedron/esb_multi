@@ -370,7 +370,6 @@ int main(void)
 	{
 		return 0;
 	}
-	bt_disable(); // esb app first
 
 	// wait until peripheral number selection
 	while (peripheral_number < 0)
@@ -379,6 +378,7 @@ int main(void)
 		k_msleep(100);
 	}
 
+	bt_disable(); // esb app first
 	err = esb_initialize();
 	if (err)
 	{
