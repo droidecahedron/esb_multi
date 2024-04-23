@@ -48,7 +48,6 @@ static void radio_ppi_trace_setup(void)
 	ppi_trace_enable(handle);
 }
 
-
 static struct esb_payload rx_payload;
 static struct esb_payload tx_payload = ESB_CREATE_PAYLOAD(0,
 														  0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17);
@@ -190,7 +189,7 @@ static void rf_swap_work_fxn(struct k_work *work)
 	{
 		LOG_INF("Disable ESB, Enable BLE");
 		esb_running = false;
-		//esb_stop_rx();
+		// esb_stop_rx();
 		esb_disable();
 		app_bt_restart();
 	}
@@ -203,7 +202,6 @@ static void rf_swap_work_fxn(struct k_work *work)
 		esb_start_rx();
 	}
 }
-
 
 int main(void)
 {

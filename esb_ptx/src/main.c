@@ -32,12 +32,12 @@ static void radio_ppi_trace_setup(void)
 	void *handle;
 
 	start_evt = nrf_radio_event_address_get(NRF_RADIO,
-				NRF_RADIO_EVENT_READY);
+											NRF_RADIO_EVENT_READY);
 	stop_evt = nrf_radio_event_address_get(NRF_RADIO,
-				NRF_RADIO_EVENT_DISABLED);
+										   NRF_RADIO_EVENT_DISABLED);
 
 	handle = ppi_trace_pair_config(29,
-				start_evt, stop_evt); // pin is high when radio is active
+								   start_evt, stop_evt); // pin is high when radio is active
 	__ASSERT(handle != NULL, "Failed to configure PPI trace pair.\n");
 
 	ppi_trace_enable(handle);
@@ -376,7 +376,7 @@ int main(void)
 
 	while (!start_test)
 	{
-		//press button 1 to leave
+		// press button 1 to leave
 	}
 
 	err = esb_initialize(g_periph_choice);
@@ -402,7 +402,7 @@ int main(void)
 			}
 			ready = false;
 			esb_flush_tx();
-			//leds_update(tx_payload.data[1]);
+			// leds_update(tx_payload.data[1]);
 
 			err = esb_write_payload(&tx_payload);
 			if (err)
@@ -413,6 +413,6 @@ int main(void)
 		}
 
 		k_yield();
-		//k_sleep(K_MSEC(100)); // TODO: probably want to remove this for performance gauging.
+		// k_sleep(K_MSEC(100)); // TODO: probably want to remove this for performance gauging.
 	}
 }
