@@ -9,16 +9,15 @@ BLE can be quite limiting as far as performance goes if you need faster response
 This example uses short radio ramp time, so both end points need to at least be nRF52-series or newer. However, this example also has a BLE fallback and you can swap your RF communication method. This is **non-concurrent**. If you a require concurrent BLE+ESB, please visit [this repo](https://github.com/too1/ncs-esb-ble-mpsl-demo).
 
 # Overview
-Primary transmitter (PTX) will go round-robin and send a packet to each primary receiver (PRX). PRXs peripherals will send data back to central PTX via ACK payloads. It's essentially the star topology on the [ESB page](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/protocols/esb/index.html) with roles inverted. There are several reasons for role inversion, but my main motivation was to avoid sync and drift headaches if peripheral devices were all PTXs, and allow the central device to seek information in a request/response format.
-
-
+Primary transmitter (PTX) will go round-robin and send a packet to each primary receiver (PRX). PRXs peripherals will send data back to central PTX via ACK payloads. It's essentially the star topology on the [ESB page](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/protocols/esb/index.html) with roles inverted. There are several reasons for role inversion, but my main motivation was to avoid sync and drift headaches if peripheral devices were all PTXs, and allow the central device to seek information in a request/response format. There are also test pins driven in the application to gauge radio activity/performance.
 
 > NOTE: The present version of the application only supports 1 central PTX 2 peripheral PRX. This was my choice due to the # of buttons on the DK where you choose which PRX you want to be. At some point, I may add CLI as the user input to make it more flexible, but for the time being this gets you most of the way there.
 
 File | Function
 --- | ---
-main.c | main application in both ptx and prx application folders
+main.c | main application in both ptx and prx application folders. The bulk of the ESB application lives here.
 prx/src/ble/* | peripheral_lbs BLE service for the BLE fallback option.
+prx/src/io/* | prx had its io code abstracted to another file for organization. It is largely similar to what you see in main of ptx.
 
 # Usage
 - Press button 1 or 2 on a PRX to be on channel/address selection 1 or 2.
