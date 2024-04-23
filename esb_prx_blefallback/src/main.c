@@ -218,9 +218,9 @@ static void rf_swap_work_fxn(struct k_work *work)
 	{
 		LOG_INF("Disable ESB, Enable BLE");
 		esb_running = false;
-		esb_stop_rx();
+		//esb_stop_rx();
 		esb_disable();
-		app_bt_init();
+		app_bt_restart();
 	}
 	else
 	{
@@ -256,23 +256,23 @@ static int leds_init(void)
 
 void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
-	LOG_INF("Button pressed at %" PRIu32, k_cycle_get_32());
-	LOG_INF("pins var: %d", pins);
+	LOG_DBG("Button pressed at %" PRIu32, k_cycle_get_32());
+	LOG_DBG("pins var: %d", pins);
 
 	switch (pins)
 	{
 	case dk_button1_msk:
-		LOG_INF("BUTTON1");
+		LOG_DBG("BUTTON1");
 		peripheral_number = 0; // first peripheral
 		break;
 
 	case dk_button2_msk:
-		LOG_INF("BUTTON2");
+		LOG_DBG("BUTTON2");
 		peripheral_number = 1;
 		break;
 
 	case dk_button3_msk:
-		LOG_INF("BUTTON3");
+		LOG_DBG("BUTTON3");
 		if (peripheral_number >= 0)
 		{
 			k_work_submit(&rf_swap_work);
@@ -280,11 +280,11 @@ void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t
 		break;
 
 	case dk_button4_msk:
-		LOG_INF("BUTTON4");
+		LOG_DBG("BUTTON4");
 		break;
 
 	default:
-		LOG_INF("unknown pin in button callback");
+		LOG_DBG("unknown pin in button callback");
 	}
 }
 
@@ -343,7 +343,6 @@ int main(void)
 
 	LOG_INF("Enhanced ShockBurst prx sample");
 
-	// init test pin
 	radio_ppi_trace_setup();
 
 	k_work_init(&rf_swap_work, rf_swap_work_fxn);
@@ -371,7 +370,6 @@ int main(void)
 	{
 		return 0;
 	}
-	bt_disable(); // esb application. disable after.
 
 	// wait until peripheral number selection
 	while (peripheral_number < 0)
@@ -380,6 +378,7 @@ int main(void)
 		k_msleep(100);
 	}
 
+	bt_disable(); // esb app first
 	err = esb_initialize();
 	if (err)
 	{

@@ -59,7 +59,7 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
     else
     {
         LOG_INF("Security failed: %s level %u err %d\n", addr, level,
-               err);
+                err);
     }
 }
 #endif
@@ -166,12 +166,12 @@ int app_bt_init(void)
 {
     int err = 0;
 
-    err = init_button();
-    if (err)
-    {
-        LOG_INF("Button init failed (err %d)\n", err);
-        return err;
-    }
+    // err = init_button();
+    // if (err)
+    // {
+    //     LOG_INF("Button init failed (err %d)\n", err);
+    //     return err;
+    // }
 
     if (IS_ENABLED(CONFIG_BT_LBS_SECURITY_ENABLED))
     {
@@ -209,6 +209,34 @@ int app_bt_init(void)
     {
         LOG_INF("Failed to init LBS (err:%d)\n", err);
         return err;
+    }
+
+    err = bt_le_adv_start(BT_LE_ADV_CONN, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
+    if (err)
+    {
+        LOG_INF("Advertising failed to start (err %d)\n", err);
+        return err;
+    }
+
+    return 0;
+}
+
+int app_bt_restart(void)
+{
+    int err = 0;
+
+    err = bt_enable(NULL);
+    if (err)
+    {
+        LOG_INF("Bluetooth init failed (err %d)\n", err);
+        return err;
+    }
+
+    LOG_INF("Bluetooth initialized\n");
+
+    if (IS_ENABLED(CONFIG_SETTINGS))
+    {
+        settings_load();
     }
 
     err = bt_le_adv_start(BT_LE_ADV_CONN, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));

@@ -15,5 +15,6 @@
 
 
 int app_bt_init(void);
+int app_bt_restart(void);
 
 #endif /* BLE_SERVICE_H_ */
