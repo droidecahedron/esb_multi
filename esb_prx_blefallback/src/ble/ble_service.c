@@ -9,7 +9,7 @@
 #define USER_LED DK_LED3
 #define RUN_LED_BLINK_INTERVAL 1000
 
-#define USER_BUTTON 30 // gpio pin 30
+#define USER_BUTTON 25 // button 4
 
 LOG_MODULE_REGISTER(ble_service);
 
@@ -166,12 +166,12 @@ int app_bt_init(void)
 {
     int err = 0;
 
-    // err = init_button();
-    // if (err)
-    // {
-    //     LOG_INF("Button init failed (err %d)\n", err);
-    //     return err;
-    // }
+    err = init_button();
+    if (err)
+    {
+        LOG_INF("Button init failed (err %d)\n", err);
+        return err;
+    }
 
     if (IS_ENABLED(CONFIG_BT_LBS_SECURITY_ENABLED))
     {

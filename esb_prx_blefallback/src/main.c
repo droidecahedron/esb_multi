@@ -66,7 +66,6 @@ BUILD_ASSERT(DT_SAME_NODE(DT_GPIO_CTLR(DT_ALIAS(led0), gpios),
 #define dk_button1_msk 1 << 11 // button1 is gpio pin 11 in the .dts
 #define dk_button2_msk 1 << 12 // button2 is gpio pin 12 in the .dts
 #define dk_button3_msk 1 << 24 // button3 is gpio pin 24 in the .dts
-#define dk_button4_msk 1 << 25 // button4 is gpio pin 25 in the .dts
 #define GPIO_SPEC_AND_COMMA(button_or_led) GPIO_DT_SPEC_GET(button_or_led, gpios),
 #define BUTTONS_NODE DT_PATH(buttons)
 static const struct gpio_dt_spec buttons[] = {
@@ -279,10 +278,6 @@ void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t
 		}
 		break;
 
-	case dk_button4_msk:
-		LOG_DBG("BUTTON4");
-		break;
-
 	default:
 		LOG_DBG("unknown pin in button callback");
 	}
@@ -291,6 +286,7 @@ void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t
 static int buttons_init(void)
 {
 	int err = NRFX_SUCCESS;
+	static int num_buttons = ARRAY_SIZE(buttons)-1; // Button 4 will be for BLE service.
 	if (!device_is_ready(buttons[0].port))
 	{
 		LOG_ERR("LEDs port not ready");
@@ -298,7 +294,7 @@ static int buttons_init(void)
 	}
 
 	//--- Buttons
-	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
+	for (size_t i = 0; i < num_buttons; i++)
 	{
 		/* Enable pull resistor towards the inactive voltage. */
 		gpio_flags_t flags =
@@ -313,7 +309,7 @@ static int buttons_init(void)
 	}
 
 	uint32_t pin_mask = 0;
-	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
+	for (size_t i = 0; i < num_buttons; i++)
 	{
 		err = gpio_pin_interrupt_configure_dt(&buttons[i], GPIO_INT_EDGE_TO_ACTIVE);
 		if (err)
@@ -325,7 +321,7 @@ static int buttons_init(void)
 	}
 
 	gpio_init_callback(&button_callback, button_pressed, pin_mask);
-	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++)
+	for (size_t i = 0; i < num_buttons; i++)
 	{
 		err = gpio_add_callback(buttons[i].port, &button_callback);
 		if (err)
