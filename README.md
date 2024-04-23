@@ -23,7 +23,7 @@ prx/src/io/* | prx had its io code abstracted to another file for organization. 
 - Press button 1 or 2 on a PRX to be on channel/address selection 1 or 2.
 - Press button 1 on the PTX to start an ESB transmit loop. Make sure to start it after you assing the PRXs to each channel you want them on.
 - Press button 3 on the PRX to swap to be a BLE LBS application. If the PRX is in the process of being spammed by the PTX in this application, you will not be able to swap from ESB to BLE due to the priorities. The intention of BLE is a fall-back communication method, so remove the PTX from the network in order to use the RF Swap button. You can either reset PTX or power it off.
-- Button 4 is the button service for [peripheral_lbs](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/samples/bluetooth/peripheral_lbs/README.html). You can be notified of the button state via BLE when connected.
+- Button 4 is used for the button service for [peripheral_lbs](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/samples/bluetooth/peripheral_lbs/README.html). You can be notified of the button state via BLE when connected.
 
 # Testing/running application
 Probe Pin29 for the PPI Toggle (RADIO ACTIVITY). Pin 31 is the application ESB callback toggle in software.
