@@ -56,4 +56,3 @@ Round-trip latency: Realistically you should probably double-ping from the PTX i
 
 > TODO:
 > Clean up, abstract ESB and IO portion to their own files.
-> CRITICAL: Debug BLE Connection process
