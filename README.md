@@ -3,14 +3,27 @@
   <img src="https://github.com/droidecahedron/esb_multi/assets/63935881/3cf10ea0-b65f-4e2e-9ea2-f58c3166ffaa">
 </p>
 
+# Introduction
+BLE can be quite limiting as far as performance goes if you need faster response times or throughput than the 7.5ms CI the present state of the spec will allow. [Enhanced Shockburst](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/protocols/esb/index.html) is a much faster wireless protocol you can use if both endpoints are Nordic.
+
+This example uses short radio ramp time, so both end points need to at least be nRF52-series or newer. However, this example also has a BLE fallback and you can swap your RF communication method. This is **non-concurrent**. If you a require concurrent BLE+ESB, please visit [this repo](https://github.com/too1/ncs-esb-ble-mpsl-demo).
+
 # Overview
-Primary transmitter (PTX) will go round-robin and send a packet to each primary receiver (PRX). PRXs peripherals will send data back to central PTX via ACK payloads.
-> NOTE: The present version of the application only supports 1 central PTX 2 peripheral PRX. This was my choice due to the # of buttons on the DK where you choose which PRX you want to be. At some point, I may add CLI as the user input to make it more flexible.
+Primary transmitter (PTX) will go round-robin and send a packet to each primary receiver (PRX). PRXs peripherals will send data back to central PTX via ACK payloads. It's essentially the star topology on the [ESB page](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/protocols/esb/index.html) with roles inverted. There are several reasons for role inversion, but my main motivation was to avoid sync and drift headaches if peripheral devices were all PTXs, and allow the central device to seek information in a request/response format. There are also test pins driven in the application to gauge radio activity/performance.
+
+> NOTE: The present version of the application only supports 1 central PTX 2 peripheral PRX. This was my choice due to the # of buttons on the DK where you choose which PRX you want to be. At some point, I may add CLI as the user input to make it more flexible, but for the time being this gets you most of the way there.
+
+File | Function
+--- | ---
+main.c | main application in both ptx and prx application folders. The bulk of the ESB application lives here.
+prx/src/ble/* | peripheral_lbs BLE service for the BLE fallback option.
+prx/src/io/* | prx had its io code abstracted to another file for organization. It is largely similar to what you see in main of ptx.
 
 # Usage
 - Press button 1 or 2 on a PRX to be on channel/address selection 1 or 2.
 - Press button 1 on the PTX to start an ESB transmit loop. Make sure to start it after you assing the PRXs to each channel you want them on.
-- Press button 3 on the PRX to swap to be a BLE LBS application. If the PRX is in the process of being spammed by the PTX in this application, you will not be able to swap from ESB to BLE due to the priorities. The intention of BLE is a fall-back communication method, so remove the PTX from the network in order to use the RF Swap button.
+- Press button 3 on the PRX to swap to be a BLE LBS application. If the PRX is in the process of being spammed by the PTX in this application, you will not be able to swap from ESB to BLE due to the priorities. The intention of BLE is a fall-back communication method, so remove the PTX from the network in order to use the RF Swap button. You can either reset PTX or power it off.
+- Button 4 is the button service for [peripheral_LBS](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/samples/bluetooth/peripheral_lbs/README.html). You can be notified of the button state via BLE when connected.
 
 # Testing/running application
 Probe Pin29 for the PPI Toggle (RADIO ACTIVITY). Pin 31 is the application ESB callback toggle in software.
@@ -53,6 +66,3 @@ independent channels are not necessary for this application, but I included it a
 changing channel: The module must be in an idle state to call this function. As a PTX, the application must wait for an idle state and as a PRX, the application must stop RX before changing the channel. After changing the channel, operation can be resumed.
 
 Round-trip latency: Realistically you should probably double-ping from the PTX if your response depends on input from the PTX. A data packet, then a second exchange to pick up the ACK data from the PRX. (as a workaround to the fact that you preload ACKs by default)
-
-> TODO:
-> Clean up, abstract ESB and IO portion to their own files.
