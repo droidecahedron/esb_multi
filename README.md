@@ -6,7 +6,7 @@
 # Introduction
 BLE can be quite limiting as far as performance goes if you need faster response times or throughput than the 7.5ms CI the present state of the spec will allow. [Enhanced Shockburst](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/protocols/esb/index.html) is a much faster wireless protocol you can use if both endpoints are Nordic.
 
-This example uses short radio ramp time, so both end points need to at least be nRF52-series or newer. However, this example also has a BLE fallback and you can swap your RF communication method. This is **non-concurrent**. If you a require concurrent BLE+ESB, please visit [this repo](https://github.com/too1/ncs-esb-ble-mpsl-demo).
+This example uses short radio ramp time, so both end points need to at least be nRF52-series or newer. However, this example also has a BLE fallback and you can swap your RF communication method. This is **non-concurrent**. If you require concurrent BLE+ESB, please visit [this repo](https://github.com/too1/ncs-esb-ble-mpsl-demo).
 
 # Overview
 Primary transmitter (PTX) will go round-robin and send a packet to each primary receiver (PRX). PRXs peripherals will send data back to central PTX via ACK payloads. It's essentially the star topology on the [ESB page](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/protocols/esb/index.html) with roles inverted. There are several reasons for role inversion, but my main motivation was to avoid sync and drift headaches if peripheral devices were all PTXs, and allow the central device to seek information in a request/response format. There are also test pins driven in the application to gauge radio activity/performance.
